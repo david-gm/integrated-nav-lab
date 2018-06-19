@@ -1,0 +1,123 @@
+% !TeX root = text.tex
+
+Zu berechnen ist die Trajektorie eines Gefährts, dessen Kurs mit einer \textit{Inertial Meassurement Unit} (IMU) und GPS gemessen wurden. Die Messungen wurden in Schönau auf einem 3\;km langen Kurs aufgenommen, die IMU Messungen wurden in einer 250\;Hz Takt und die GPS Messungen in 1\;Hz Takt aufgezeichnet.
+
+\subsection{Initial Alignment}
+
+Zuerst soll das \textit{Initial Alignment} aus den IMU Messungen berechnet werden. Es sind statische Messungen in einem Zeitraum von 10 Minuten in einer Sampling-Rate von 250\;Hz, sowie die IMU WGS-84 Koordinaten gegeben (siehe Tabelle \ref{tab:imu_centre}). Diese sollen auf 1\;Hz gemittelt werden, und daraus die Euler Winkel für das \textit{Initial Alignment} für jede Epoche berechnet werden. Aus diesen Daten sind der Mittelwert und die Standardabweichung zu berechnen, sowie eine graphische Darstellung zu generieren.
+
+\begin{table}[htbp]
+	\centering
+	\caption{WGS-84 Koordinaten des IMU Zentrums}
+	\label{tab:imu_centre}
+		\begin{tabular}{ lcccccc }
+		\addlinespace[10pt]
+		   	& $x_1^e$ [m] 	& $x_2^e$ [m] 	& $x_3^e$ [m] 	& $\varphi$ [$^\circ$] 	& $\lambda$ [$^\circ$] 	& $h$ [m]\\ \toprule
+		IMU 	& 4198273.27 	& 967266.63 	&  4688274 	& 47.6104027			& 12.9743281			& 666.512 \\ \bottomrule
+		\end{tabular}
+\end{table}
+
+\subsection{Strapdown Algorithm}
+
+Mit einem gegeben \textit{Initial Alignment} (Tabelle \ref{tab:fine_alignment}) - diese resultiert aus einem \textit{Fine Alignment} - der Startposition (gegeben in GPS Koordinaten - siehe Tabelle \ref{tab:imu_start}) und den gegebenen kinetischen IMU Messungen soll ein \textit{Strapdown Algorithmus} berechnet werden. Dabei ist darauf zu achten, dass die kinetischen Messungen von den ursprünglich 250\;Hz auf 50\;Hz gesampled werden sollen und der Fehler der IMU Messungen in den Akzelerometer- und Kreisel-Messungen (siehe Tabelle \ref{tab:biases}) vorher angebracht werden müssen.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Inital Attitude from Fine Alignment}
+	\label{tab:fine_alignment}
+		\begin{tabular}{ lccc }
+		\addlinespace[10pt]
+		   	& Roll [$^\circ$]	& Pitch [$^\circ$] 	& Yaw  [$^\circ$]\\ \toprule
+		IMU 	& -1.24			& 0.84			& -71.6 \\ \bottomrule
+		\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Startpunkt-Koordinaten}
+	\label{tab:imu_start}
+		\begin{tabular}{ lccc }
+		\addlinespace[10pt]
+		   	& $\varphi$ [$^\circ$] 	& $\lambda$ [$^\circ$] 	& $h$ [m]\\ \toprule
+		IMU 	& 47.61040305			& 12.97432650			& 666.516 \\ \bottomrule
+		\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Sensorenfehler (Biases)}
+	\label{tab:biases}
+		\begin{tabular}{ lcccc }
+		\addlinespace[10pt]
+		   					&	& Sensor 1		& Sensor 2 		& Sensor 3\\ \toprule
+		Accelerometer& [$m/s^2$] 	& $+4.1\cdot 10^{-4}$	& $-2.7\cdot 10^{-4}$	& $+4.68\cdot 10^{-3}$ \\ 
+		Gyroscope &[$^\circ/h$]		& $+9.2\cdot 10^{-4}$	& $-1.3\cdot 10^{-4}$ 	& $-6.0\cdot 10^{-4}$ \\ \bottomrule
+		\end{tabular}
+\end{table}
+
+\subsection{Kalman Filter}
+
+Um GPS und IMU Messungen zu verknüpfen, soll ein Kalman Filter programmiert werden. Dieser soll in zwei Ausführungen umgesetzt werden:
+\begin{enumerate}
+\item \textbf{Uncoupled Integration:} Die Sensor-Systeme (GPS und IMU) werden unabhängig voneinander betrieben und die Daten werden unabhängig voneinander präprozessiert.
+\item \textbf{Loosely Coupled Integration:} Der Kalman Filter gibt ein Feedback an die IMU.
+\end{enumerate}
+
+Für die Position soll die IMU Position nur mit 1\;Hz in den Kalman Filter eingehen. Des weiteren sollen die ersten 25 Beobachtungen der IMU ignoriert werden.
+
+Folgende Parameter können für die Integration des Kalman Filters verwendet werden:
+\begin{table}[htbp]
+	\centering
+	\caption{Kalman Parameter}
+	\label{tab:kal_para}
+		\begin{tabular}{ lll }
+		\addlinespace[10pt]
+		Parameter	& Wert & Beschreibung\\ \toprule
+		$\Delta t$ 	& $1~s$ & Sampling Rate \\
+		$s_x = s_y$ & $\pm 1/2 * 1.4\cdot 10^{-3} * t^2 + 1/6 *3.8\cdot 10^{-8} * t^3$ & Mess-Rauschen der IMU\\
+		$s_x = s_y = s_z$ & 10~m & Std. der GPS-Koordinaten \\
+		$s$ & $\pm 1~m/s^2$ & System Rauschen\\ \bottomrule
+		\end{tabular}
+\end{table}
+
+\subsection{Konstanten}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Konstanten}
+	\label{tab:constants}
+		\begin{tabular}{ crcl }
+		\addlinespace[10pt]
+		Parameter	& Wert & Einheit & Beschreibung\\ \toprule
+		$a$ 	& 6 378 137.0 & $m$ & Große Halbachse \\
+		$f$	& 1 / 298.257 223 563 & & Erdabflachung\\
+		$\omega_E$	& 7.292 115 $\cdot$ $10^{-5}$ & $rad/s$ & Erdrotation\\
+		$G \cdot M_E$	& 3.986 004 418 $\cdot$ $10^{14}$ & $m^3/s^2$ & Gravitationskonstante x Masse\\
+		$\gamma_a$	& 9.780 326 771 5 & $m/s^2$ & Äquator-Erdbeschleunigung\\
+		$\gamma_b$	& 9.832 186 368 5 & $m/s^2$ & Pol-Erdbeschleunigung\\ \bottomrule
+		\end{tabular}
+\end{table}
+
+\subsection{Datenformate}
+
+\begin{table}[htbp]
+	\centering
+	\caption{{\tt Files: INS\_static.txt, INS\_kinematic.txt}}
+		\begin{tabular}{ ccccccc }
+		\addlinespace[10pt]
+		time [$s$]	& \multicolumn{3}{c}{gyro [$^\circ /s$]} & \multicolumn{3}{c}{accelerometer [$m/s^2$]}\\ \toprule
+		 Column 1 	&  Column 2 & Column 3 & Column 4 &  Column 5 & Column 6 & Column 7\\ \midrule
+		t 	& $\omega_{ib_2}^b$ & $\omega_{ib_1}^b$	& $-\omega_{ib_3}^b$ 	& $f_2^b$ & $f_1^b$ & $-f_3^b$\\ \bottomrule
+		\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	\caption{{\tt Files: GPS.txt}}
+		\begin{tabular}{ cccc }
+		\addlinespace[10pt]
+		time [$hh:mm:ss$]	& latitude [$^\circ$] & longitude [$^\circ$] & height [$m$]\\ \toprule
+		 Column 1 	&  Column 2 & Column 3 & Column 4 \\ \midrule
+		t 	& $\varphi$ & $\lambda$	& $h_{ell}$\\ \bottomrule
+		\end{tabular}
+\end{table}

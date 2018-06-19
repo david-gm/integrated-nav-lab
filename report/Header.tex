@@ -1,0 +1,134 @@
+\documentclass[11pt,parskip,naustrian,fleqn,a4paper]{scrartcl}
+\usepackage[T1]{fontenc}
+\usepackage{a4wide}
+\usepackage[utf8]{inputenc}
+%\usepackage{naustrian}
+\usepackage{babel}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{color}
+\usepackage{booktabs}
+\usepackage{fancyvrb}
+\usepackage{lmodern}
+\usepackage{dcolumn}
+%for header
+\usepackage{fancyhdr}
+%for titlepage
+\usepackage{tabularx}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}} % zentrierte Spalten mit Breitenangabe 
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}} % rechtsbündig mit Breitenangabe 
+%Jetzt kann man an Stelle des p{BREITE} einfach C{BREITE} für zentrierte, und R{BREITE} für rechtsbündige Textausrichtung verwenden.
+%Tabellen
+\usepackage{multirow}
+%for pdf editing
+\usepackage[pdftex,plainpages=false]{hyperref}
+\usepackage[final]{pdfpages}
+
+%define new titlestyles
+\usepackage{titlesec}
+
+%line break after paragraph
+\titleformat{\paragraph}[hang]{\sffamily\bfseries}{}{0pt}{}
+\titlespacing*{\paragraph}{0mm}{10pt}{5pt}
+
+%pdf editing:
+\hypersetup{%
+	colorlinks=false,
+  pdfstartview=FitV} % PDF-Viewer benutzt beim Start bestimmte Seitenbreite
+
+\makeindex
+
+%____________________________________
+%Makro für Title erstellt
+%#1..Fach, #2..LV-Nummer, #3..Semester, #4..Titel, #5..Untertitel, #6..Name1, #7..MatrNr.1, #8..Name2, #9..MatrNr.2
+\newcommand{\titelpro}[6]
+{
+
+	%\includegraphics[width=0.2\columnwidth]{Pics/LogoTUGraz}
+	\clearpage	
+
+\flushright{\today}
+
+\begin{table}[htbp]
+  \centering
+    \begin{tabularx}{\textwidth}[t]{@{\extracolsep{\fill}}lcp{0.17\textwidth}}
+    \midrule[1.5pt]
+    \\   
+    \multirow{4}{*}{\includegraphics[width=0.2\columnwidth]{Pics/LogoTUGraz}} & \textsc{\huge{#1}} &  \\ & & \\ & #2 & \\ & #3 &  \\  
+    \\
+    \midrule[1.5pt]
+    \\
+    \multicolumn{1}{c}{} & \textsc{\Large{#4}} & \multicolumn{1}{c}{} \\
+    \multicolumn{1}{c}{} & \large{\bf #5} & \multicolumn{1}{c}{} \\\\\\\\\\
+    {} & {\it erstellt von:} & {}\\
+    #6
+    %\hline
+    \end{tabularx}
+\end{table}
+	\vspace*{\fill}
+}
+%____________________________________
+%Makro für Header erstellt
+\newcommand{\headernew}[5]
+{
+\pagestyle{fancy}
+\renewcommand{\footrulewidth}{0.4pt}
+\addtolength{\headheight}{\baselineskip}
+\addtolength{\headheight}{10.5pt}
+
+\fancyhead{}
+\fancyfoot{}
+\lhead{#1}
+\chead{\textit{#2}\\\vspace{10pt}\textbf{#3}}
+\rhead{#4}
+\cfoot{\thepage}
+\rfoot{\small#5}
+}
+
+%____________________________________
+%Makroheader
+%\headernew{Navigation}{1.Programm}{Kalman Filter}{David Gmeindl}{MatNr.: 0831307}
+
+
+%define content of header and footer
+%\usepackage{scrpage2}
+%\cfoot[\pagemark]{pagemark}
+%\automark{section}			%with subsection in top left header: \automark[subsection]{section}
+%\clearscrheadfoot
+%
+% \renewcommand{\sectionmark}[1]{\markboth{\sectionmarkformat #1}{}}
+%
+%\ihead{\rightmark}
+%\ohead{\leftmark}
+%\lofoot{Integrated Navigation}
+%\lefoot{Integrated Navigation}
+%
+%\cfoot{\pagemark} 
+%
+%\setheadsepline{0.4pt}
+%\setfootsepline{.4pt}
+
+%____________________________________
+
+\newenvironment{tables}
+{\vspace*{12pt}\hspace{12pt}\begin{center}}
+{\end{center}}
+
+%____________________________________
+%Entsprichtsymbol
+\newcommand{\entspricht}{\
+rel{\widehat{=}}}
+
+% mehr als 3 Tabellen pro page
+\renewcommand\floatpagefraction{.9}
+\renewcommand\topfraction{.9}
+\renewcommand\bottomfraction{.9}
+\renewcommand\textfraction{.1}   
+\setcounter{totalnumber}{50}
+\setcounter{topnumber}{50}
+\setcounter{bottomnumber}{50}
+
+%new definition of vectors
+\renewcommand{\vec}[1]{\underline{#1}}

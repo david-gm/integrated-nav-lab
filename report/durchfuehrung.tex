@@ -1,0 +1,323 @@
+% !TeX root = text.tex
+
+\subsection{Initial Alignment}
+
+Im \textit{Initial Alignment} wird aus den statischen Daten {\tt INS\_static.txt} die Euler Winkel für die Drehmatrix $\mathbf{R_b^L}$ berechnet. Gemessen wurden die spezifische Kraft $f^b$ und die Drehwinkel im inertialen \textit{Body Frame} $\omega_{ib}^b$. Aus der spezifischen Kraft $f^b$
+\begin{equation}
+ 	-\vec{f}^b = \vec{R}_L^b \vec{g}^L
+\end{equation}
+und dem Drehwinkel $\omega_{ib}^b$
+\begin{equation}
+ 	\vec{\omega}_{ib}^b = \vec{R}_L^b \vec{\omega}_{ie}^L
+\end{equation}
+lassen sich die Hilfsvektoren $c^b$ und $c^L$ bilden:
+\begin{align}
+ 	\vec{c}^L &= \vec{g}^L \times \vec{\omega}_{ie}^L\\
+	 \vec{c}^b &= -\vec{f}^b \times \vec{\omega}_{ib}^b
+\end{align}
+Es gilt:
+\begin{equation}
+ 	\vec{c}^b(t_k) = \vec{R}_L^b(t_0)\vec{c}^L(t_0)
+\end{equation}
+und damit das Gleichungssystem
+\begin{align}
+ 	\underbrace{\left[ -\vec{f}^b \vec{\omega}_{ib}^b \vec{c}^b \right]_{t_k}}_{\text{gemessen: }\vec{F}^b(t_k)}& = \underbrace{\vec{R}_L^b(t_0)}_{\text{gesucht}} \underbrace{\left[ \vec{g}^L  \vec{\omega}_{ie}^L \vec{c}^L \right]}_{\text{bekannt} \vec{F}^l(t_0)}\\
+	\vec{R}_L^b &= \vec{F}^b \left( \vec{F}^L \right)^{-1}
+\end{align}
+
+Die drei Euler Winkel $r, p , y$ ergeben sich aus der Drehmatrix $\mathbf{R_L^b}$ berechnen:
+\begin{equation}\label{eq:r_lb}
+	\vec{R}_L^b =
+	\begin{bmatrix}
+		\cos p \cos y & \cos p \sin y & -\sin p\\
+		r_{21} & r_{22} & \sin r \cos p\\
+		r_{31} & r_{32} & \cos r \cos p
+	\end{bmatrix}
+\end{equation}
+
+\begin{equation}
+ 	r = \arctan{\frac{r_{23}}{r_{33}}}, \quad y = \arctan{\frac{r_{12}}{R_{11}}},\quad p = \arcsin{-r_{13}}
+\end{equation}
+
+Um die Erdrotation $\omega_{ie}^L$ und lokale Normalschwere $\bar{g}^L$ berechnen zu können, benötigt man Modellparameter (siehe dazu Tabelle \ref{tab:constants} auf Seite \pageref{tab:constants}) und die gegebene WGS-84 Koordinaten des IMU Zentrums (siehe Tabelle \ref{tab:imu_centre} auf Seite \pageref{tab:imu_centre}). Danach sind die Formeln für den Erdrotationsvektor im Standpunkt (nur von $\varphi$ abhängig) und die Formel von Somigliana anzuwenden und in die Hilfsvektoren einzusetzen.
+\begin{equation}
+ 	\vec{\omega}_{ie}^L =
+		\begin{bmatrix}
+			   \omega_E \cos{\varphi}\\
+                	   0\\
+                	   \omega_E \sin{\varphi}\\
+		\end{bmatrix}
+\end{equation}
+\begin{equation}\label{eq:g_L}
+ 	\vec{\bar{g}}^L(t_k) = 
+		\begin{bmatrix}
+			0\\
+			0\\
+			\gamma(\varphi (t_k), h(t_k))
+		\end{bmatrix}
+\end{equation}
+mit
+\begin{equation}
+ 	\gamma (\varphi, h) \approx \gamma(\varphi) \cdot \left ( 1 -\frac{2}{a} \left ( 1+f+m-2f\sin^2{\varphi}\right) h +\frac{3}{a^2}h^2 \right),
+\end{equation}
+\begin{equation}
+ 	f = \frac{a-b}{a} ,\quad m = \frac{\omega_E^2a^b}{GM_E}
+\end{equation}
+und der Formel von Somigliana:
+\begin{equation}\label{eq:somigliana}
+ 	\gamma (\varphi) = \frac{a \gamma_a \cos^2{\varphi} + b \gamma_b \sin^2{\varphi}}{\sqrt{a^2 \cos^2{\varphi} + b^2 \sin^2{\varphi}}}
+\end{equation}
+
+\subsection{Strapdown Algorithm}
+
+Der Strapdown Algorithmus berechnet aus den gemessenen Größen den Positionsvektor $x^e$ und denn Geschwindigkeitsvektor $v_e^L$. Gegeben sind die Messungen der spezifischen Kraft $f^b$ der Akzelerometer sowie die Drehwinkel $\omega_{ib}^b$ der Gyrometer. Zusätzlich müssen für die erste Epoche der inertiale Positionsvektor $x^e(t_0)$ und Geschwindigkeitsvektor $v_e^L(t_0)$ gegeben sein. Der inertiale Positionsvektor ist gegeben (siehe Tabelle \ref{tab:imu_start}, Seite \pageref{tab:imu_start}), der Geschwindigkeitsvektor wird in der ersten Epoche mit $\mathbf{0}$ angenommen. Die initiale Attitude Matrix $\mathbf{R_b^L}(t_0)$ wird aus den Euler Winkeln des \textit{Fine Alignment} berechnet (siehe Tabelle \ref{tab:fine_alignment}, Seite \pageref{tab:fine_alignment}).
+
+Die Messungen des Files {\tt INS\_kinematic.txt} wurden auf 50\;Hz gesampled und danach die Feler aus Tabelle \ref{tab:biases} angebracht. 
+\begin{align}
+ 	\vec{\omega}_{ib}^b &= \vec{\omega}_{ib \text{ meassured}}^b - \Delta \vec{\omega}_{ib}^b\\
+    	\vec{f}^b &= \vec{f}^b_{\text{meassured}} - \Delta \vec{f}^b
+\end{align}
+
+\paragraph{Algorithmus}
+
+\paragraph{Step 1}
+
+Die Attitude Matrix $\mathbf{R_b^L}$ für die nächste Epoche wird aus der Differentialgleichung berechnet:
+\begin{align}
+	\vec{\dot{R}}_b^L(t_{k+1}) &= \vec{R}_b^L(t_k)\vec{\Omega}_{ib}^b(t_{k+1}) - \vec{\Omega}_{iL}^L(t_k)\vec{R}_b^L(t_k)\\
+	\vec{R}_b^L(t_{k+1}) &= \vec{R}_b^L(t_k) + \Delta t\; \vec{\dot{R}}_b^L(t_{k+1})
+\end{align}
+
+\begin{tabularx}{\textwidth}{l c X}
+	$\qquad\vec{R}_b^L(t_k)$ & ... & In der ersten Epoche wird $\vec{R}_b^L$ mit den Werten des \textit{Fine Alignment} berechnet. In allen anderen Epochen wird r, p, y der Vorepoche für die Berechnung herangezogen (siehe Formel \ref{eq:r_lb}). Danach wird erst $\vec{R}_b^L(t_{k+1})$ mit $\vec{R}_b^L$ berechnet.\vspace{.5em}\\
+	$\qquad\vec{\Omega}_{ib}^b(t_{k+1})$& ... & Messungen des Gyrometers zum Zeitpunkt $t_k$. Die Matrix ist eine schief-symmetrische Matrix gebildet mit dem Vektor $\vec{\omega}_{ib}^b$. \vspace{.5em}\\
+	$\qquad\vec{\Omega}_{iL}^L(t_k)$ & ... & $\vec{\omega}_{iL}^L$ wird aus der Position zum Zeitpunkt $t_k$  und den Komponenten des Geschwindigkeitsvektors berechnet. Die Matrix $\vec{\Omega}_{iL}^L(t_k)$ ist eine schief-symmetrische Matrix gebildet aus dem Vektor $\vec{\omega}_{iL}^L$.
+\end{tabularx}
+
+Für den Drehwinkel Vektor $\vec{\Omega}_{iL}^L(t_k)$  muss die Geschwindigkeit der IMU bekannt sein:
+\begin{equation}
+ 	\vec{v}_e^L = \begin{bmatrix}v_n\\v_e\\v_d\end{bmatrix}=\begin{bmatrix}(M+h)\dot{\varphi}\\(N+h)\cos{\varphi} \dot{\lambda}\\-\dot{h}\end{bmatrix}
+\end{equation}
+
+mit den Krümmungsradien N und M:
+\begin{equation}
+	M = \frac{c}{V^3}, \quad N = \frac{c}{V}
+\end{equation}
+\begin{equation}
+ 	c = \frac{a^2}{b}, \quad V=\sqrt{1+e’^2\cos^2{\varphi}}, \quad e’^2 = \frac{a^2-b^2}{b^2}
+\end{equation}
+
+Damit können die Geschwindigkeiten in geographischer Länge und Breite berechnet werden:
+\begin{align}
+ 	\dot{\varphi} & = \frac{v_n}{M+h}\\
+	\dot{\lambda} & = \frac{v_e}{(N+h)\cos{\varphi}}
+\end{align}
+
+Der Vektor der Winkelgeschwindigkeiten wird mit der Erdrotation berechnet:
+\begin{equation}
+ 	\vec{\omega}_{iL}^L = \vec{\omega}_{ie}^L +\vec{\omega}_{eL}^L = 
+	\begin{bmatrix}
+		(\dot{\lambda}+\omega_E)\cos{\varphi}\\
+		-\dot{\varphi}\\
+		-(\dot{\lambda}+\omega_E)\sin{\varphi}\\
+	\end{bmatrix}
+\end{equation}
+
+\paragraph{Step 2}
+
+Im zweiten Schritt wird die spezifische Kraft vom \textit{Body Frame} in den \textit{Local Level Frame} gedreht.
+\begin{equation}
+ 	\vec{f}^L(t_{k+1}) = \vec{R}_L^b(t_{k+1}) \vec{f}^b(t_{k+1})
+\end{equation}
+
+\paragraph{Step 3}
+
+Mit der aktuellen Position $x(\varphi,\lambda,h,t_k)$ wird die Normalschwere für den Zeitpunkt $t_k$ berechnet, welche in den Akzelerometermessungen mitgemessen wird und daher berücksichtigt werden muss. Die Formeln \ref{eq:g_L} - \ref{eq:somigliana} berechnen die Normalschwere.
+
+\paragraph{Step 4}
+
+Auch die Corioliskraft wirkt in den Vektor der spezifischen Kraft mit ein und muss daher berücksichtigt werden. Abhängig ist diese von der aktuellen Position $x(\varphi,\lambda,h,t_k)$, der Erdrotation $\omega_E$ und der Geschwindigkeit $v_e$.
+\begin{equation}
+	\vec{\omega}_{ie}^L =
+		\begin{bmatrix}
+			\omega_E \cos \varphi \\ 
+ 			0 \\ 
+			-\omega_E \sin \varphi
+		\end{bmatrix}
+\end{equation}
+\begin{equation}
+	\vec{f}_{\text{Coriolis}}^L = - (\vec{\Omega}_{iL}^L+\vec{\Omega}_{ie}^L) \vec{v}_e^L
+\end{equation}
+
+\paragraph{Step 5}
+
+Der aktuelle Beschleunigungsvektor resultiert aus spezifischer Kraft $f^L$, der Normalschwere $\bar{g}^L$, und der Corioliskraft $f_{\text{Coriolis}}^L$.
+\begin{equation}
+	\vec{\dot{v}}_e^L(t_{k+1}) = \vec{f}^L(t_{k+1}) + \vec{\bar{g}}^L(t_k) + \vec{f}_{\text{Coriolis}}^L(t_k)
+\end{equation}
+Durch Integration erhält man den Geschwindigkeitsvektor für die nächste Epoche $t_{k+1}$.
+\begin{equation}
+ 	\vec{v}_e^L(t_{k+1}) = \vec{v}_e^L(t_k) + \Delta t \; \vec{\dot{v}}_e^L(t_{k+1})  
+\end{equation}
+
+\paragraph{Step 6}
+
+Die zweite Navigationsgleichung wird für die Berechnung der Geschwindigkeit im Earth-Fixed System verwendet.
+\begin{equation}
+ 	\vec{\dot{x}}^e(t_{k+1}) = \vec{R}_L^e(t_k) \vec{v}_e^L(t_{k+1})
+\end{equation}
+Die Drehmatrix $\mathbf{R}_L^e(t_k)$ wird aus der aktuellen Position $x(\varphi,\lambda,h,t_k)$ berechnet:
+\begin{equation}
+	\vec{n} =	\begin{bmatrix}
+			-\sin\varphi \cos\lambda \\ 
+			-\sin\varphi \sin\lambda \\ 
+			\cos\varphi
+		\end{bmatrix}, \quad
+	\vec{e} =	\begin{bmatrix}
+			-\sin\lambda \\  
+			\cos\lambda \\ 
+			0
+		\end{bmatrix}, \quad
+	\vec{d} =	\begin{bmatrix}
+			-\cos\varphi \cos\lambda \\ 
+			-\cos\varphi \sin\lambda \\ 
+			-\cos\varphi
+		\end{bmatrix}
+\end{equation}
+\begin{equation}
+ 	\vec{R}_L^e(t_k) = \vec{R}_L^e(\varphi,\lambda) = \begin{bmatrix}\vec{n}& \vec{e}& \vec{d}\end{bmatrix}
+\end{equation}
+ Durch Integration erhält man die aktuelle Position des INS.
+\begin{equation}
+ 	\vec{x}^e(t_{k+1}) = \vec{x}^e(t_k) + \Delta t \; \vec{\dot{x}}^e(t_{k+1})
+\end{equation}
+
+\subsection{Kalman Filter}
+
+\subsubsection{Beobachtungsmodell}
+\paragraph{Beobachtungsvektor}
+
+\begin{equation}
+	\vec{z}_k = \begin{bmatrix}
+		x_{GPS}&y_{GPS}&z_{GPS}&x_{INS}&y_{INS}&z_{INS}
+	\end{bmatrix}^T
+\end{equation}
+
+\paragraph{Beobachtungsmodell für GPS}
+
+Beobachtungsgleichung für die GPS Beobachtungen:
+\begin{equation}
+ 	\vec{z}_{k\;(1)} = \vec{H}_{k\;(1)} \vec{x}_k + (\vec{v}_k) = \begin{bmatrix}x_{GPS}\\y_{GPS}\\z_{GPS}\end{bmatrix}_k = 
+		\begin{bmatrix}
+			1&0&0&0&0&0\\
+			0&1&0&0&0&0\\
+			0&0&1&0&0&0
+		\end{bmatrix} \vec{x}_k
+\end{equation}
+Kovarianzmatrix der Beobachtungen:
+\begin{equation}
+ 	\vec{R}_k^{GPS} = \begin{bmatrix}\sigma_x^2&0&0\\&\sigma_y^2&0\\&&\sigma_z^2\end{bmatrix}
+\end{equation}
+
+\paragraph{Beobachtungsmodell für INS}
+
+Beobachtungsgleichung für die INS Beobachtungen:
+\begin{equation}
+ 	\vec{z}_{k\;(2)} = \vec{H}_{k\;(2)} \vec{x}_k + (\vec{v}_k) = \begin{bmatrix}x_{INS}\\y_{INS}\\z_{INS}\end{bmatrix}_k = 
+		\begin{bmatrix}
+			1&0&0&0&0&0\\
+			0&1&0&0&0&0\\
+			0&0&1&0&0&0
+		\end{bmatrix} \vec{x}_k
+\end{equation}
+Kovarianzmatrix der Beobachtungen:
+\begin{equation}
+ 	\vec{R}_k^{INS} = \begin{bmatrix}\sigma_{x}^2&0&0\\&\sigma_{y}^2&0\\&&\sigma_{z}^2\end{bmatrix}
+\end{equation}
+
+\subsubsection{Dynamisches Modell}
+
+\paragraph{Prädiktion mit Transition Matrix}
+
+\begin{equation}
+	\vec{\tilde x}_{k+1}  =  \vec{\Phi}_k \vec{\hat x}_k = 
+		\begin{bmatrix}
+ 			\tilde{x}\\\tilde{y}\\\tilde{z}\\\tilde{\dot{x}}\\\tilde{\dot{y}}\\\tilde{\dot{z}}
+		\end{bmatrix}_{k+1} = 
+		\begin{bmatrix}
+			1&0&0&\Delta t&0&0\\
+			&1&0&0&\Delta t&0\\
+			&&1&0&0&\Delta t\\
+			&&&1&0&0\\
+			&&&&1&0\\
+			&&&&&1
+		\end{bmatrix}_k
+		\begin{bmatrix}
+ 			\hat{x}\\\hat{y}\\\hat{z}\\\hat{\dot{x}}\\\hat{\dot{y}}\\\hat{\dot{z}}
+		\end{bmatrix}_k
+\end{equation}
+
+\paragraph{Systemrauschen}
+
+Die Auswirkung der Störbeschleunigungen $\vec{a}$ auf die Beobachtungen wird mit $\mathbf{N}$ beschrieben.
+\begin{equation}
+	\begin{bmatrix}\Delta x\\\Delta y\\\Delta z\\\Delta \dot x\\\Delta \dot y\\\Delta \dot z\end{bmatrix} = 
+	\begin{bmatrix}
+	\frac{1}{2} \Delta t & 0 & 0\\
+	0& \frac{1}{2} \Delta t & 0\\
+	0& 0 & \frac{1}{2} \Delta t\\
+	\Delta t & 0 & 0\\
+	0&\Delta t & 0\\
+	0& 0 & \Delta t
+	\end{bmatrix}
+	\begin{bmatrix}
+	\ddot x\\
+	\ddot y\\
+	\ddot z\\
+	\end{bmatrix} = \vec{N} \;\vec{a}
+\end{equation}
+
+Kovarianzmatrix der Systemrauschvariablen (der Störbeschleunigungen):
+\begin{equation}
+ 	\vec{S} = \vec{S}_{\vec{a}} = \begin{bmatrix}\sigma_{\ddot x}^2 & 0 & 0\\&\sigma_{\ddot y}^2 & 0\\ &&\sigma_{\ddot x}^2\end{bmatrix}
+\end{equation}
+
+Kovarianzmatrix des Systemrauschens:
+\begin{equation}
+ 	\vec{Q}_k = \vec{N}\;\vec{S}\;\vec{N}^T
+\end{equation}
+
+\subsubsection{Filter}
+
+1.Schritt: Time Update (Prädektion)
+\begin{eqnarray}
+ 	\vec{\tilde{x}}_{k+1} & = & \vec{\Phi}_k \vec{\hat x}_k\\
+	\vec{\tilde P}_{k+1} & = & \vec{\Phi}_k \vec{P}_k \vec{\Phi}_k^T + \vec{Q}_k
+\end{eqnarray}
+
+2.Schritt: Berechnung der Kalman Gewichtsmatrix
+\begin{eqnarray}
+	\vec{K}_k = \vec{\tilde P}_k \vec{H}_k^T (\vec{H}_k \vec{\tilde P}_k \vec{H}_k^T + \vec{R}_k)^{-1}
+\end{eqnarray}
+
+3.Schritt: Beobachtungsupdate (Korrekturschritt)
+\begin{eqnarray}
+	\vec{\hat x}_k & = & \vec{\tilde x}_k + \vec{K}_k (\vec{z}_k - \vec{H}_k \vec{\tilde x}_k)\\
+	\vec{P}_k & = & (\mathbf{I}-\vec{K}_k \vec{H}_k) \vec{\tilde P}_k
+\end{eqnarray}
+
+\subsubsection{Messlücken}
+
+Im Fall von Messlücken in den GPS Daten wird das Design nur mehrauf die Komponenteix der Beobachtungen der INS reduziert. Es werden nur noch die Designmatrix $\vec{H}_{k(2)}$ und die Kovarianzmatrix der Beobachtungen $\vec{R}_k^{INS}$ der INS verwendet.
+
+\subsubsection{Typen von Kalmanfiltern}
+Um die Auswirkungen von verschiedenen Kalmanfilter-Typen zu untersuchen, wurden der ungekoppelte und der lose gekoppelte Kalman-Filter implementiert.
+
+\paragraph{Ungekoppelter Kalmanfilter}
+
+Der ungekoppelte Kalmanfilter erhält vorprozessierte Daten von den GPS Daten und dem Strapdown Algorithmus. GPS Daten und die Koordinaten des Strapdown Algorithmus sind im erdfesten Referenzsystem gegeben.
+Im ungekoppelten Kalmanfilter werden aus beiden Inputs die Koordinaten der Position berechnet. Es erfolgt kein Feedback an ein System.
+
+\paragraph{Lose gekoppelter Kalmanfilter}
+
+Der lose gekoppelte Kalmanfilter gibt als Feedback die Position $\vec{x}_e$ der aktuellen Epoche an den Strapdown Algorithmus für die nächste Epoche zurück. Da die GPS Koordinaten mit einer Samplerate von 1~Hz und die Koordinaten der INS mit 50~Hz gegeben sind, muss der Kalmanfilter in den Strapdown Algorithmus implementiert werden. Somit fließt jedes Ergebnis des Strapdown Algorithmus in den Kalmanfilter und nur jede 50. GPS-Koordinate in den Kalmanfilter ein.

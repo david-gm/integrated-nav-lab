@@ -1,0 +1,80 @@
+% !TeX root = text.tex	
+
+\subsection{Initial Alignment}
+
+Aus der Berechnung des Initial Alignment der statischen Inputdaten gehen die Eulerwinkel in Abbildung \ref{fig:ts_euler} hervor. Bereits erkennbar ist die große Standartabweichung des Yaw-Winkels. Diese Standwartabweichung wird numerisch in Tabelle \ref{tab:euler} gezeigt. Bei einem Inital Alignment, wo die IMU eigentlich nicht bewegt wird, ist die hohe Standardabweichung im Yaw-Winkel auffälig.
+
+\begin{figure}[htbp]
+	\center
+ 	\includegraphics[width=0.8\textwidth]{pics/fig_1}
+	\caption{Zeitreihe der Eulerwinkel}
+	\label{fig:ts_euler}
+\end{figure}
+
+\begin{table}[htbp]
+	\centering
+	\label{tab:euler}
+	\caption{Ergebnisse des Coarse Alignments}
+	\begin{tabular}{lrrr}
+	&roll [$^\circ$]&pitch [$^\circ$]&yaw [$^\circ$]\\\toprule
+	Mittelwert&-1.189& 0.787& -70.845\\
+	Standardabweichung&0.002&$3\cdot10^{-4}$& 5.806\\\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{Strapdown Algorithmus und Kalmanfilter}
+Es wurden zwei verschiedene Kalmanfilter berechnet - ungekoppelter Kalmanfilter und lose gekoppelter Kalmanfilter. Die unterschiedlichen Ergebnisse sind in den jeweiligen Unterkapiteln ersichtlich.
+
+\subsubsection{Ungekoppelter Kalman Filter}
+
+Beim ungekoppelten Kalmanfilter wurde zunächst die jeweilige Position der IMU mittels Strapdown Algorithmus berechnet. Diese Positionen sowie die GPS-Positionen sind in der Abbildung \ref{fig:tra_un} dargestellt. Daneben ist auch das Ergebnis der Kalmanfilterung in rot visualisiert. Die Darstellung zeigt eine starke Anpassung der gefilterten an die IMU Trajektorie.
+
+\begin{figure}[htbp]
+	\center
+ 	\includegraphics[width=0.8\textwidth]{pics/fig_2}
+	\caption{Trajektore (ungekoppelter Kalmanfilter)}
+	\label{fig:tra_un}
+\end{figure}
+
+Abbildung \ref{fig:ts_un} zeigt eine Zeitreihe der Höhen. Es wurden wiederum das Ergebnis des Strapdown Algorithmus, die Eingangs-GPS-Daten und die gefilterten Daten dargestellt. Hierbei erkennt man deutlich den starken Ausreißer der GPS-Höhe, die jedoch aufgrund der Filterung im Endergebnis nicht mehr aufscheint. Die gefilterte Trajektorie ist stark an die IMU Trajektorie gekoppelt, am Ende der Zeitreihe sind jedoch größere Unterschiede zwischen diesen beiden Trajektorien erkennbar, da sich die Genaugikeit der IMU mit der Zeit verschlechtert.
+
+\begin{figure}[htbp]
+	\center
+ 	\includegraphics[width=0.8\textwidth]{pics/fig_3}
+	\caption{Zeitreihe der Höhen (ungekoppelter Kalmanfilter)}
+	\label{fig:ts_un}
+\end{figure}
+
+\newpage
+\subsubsection{Lose gekoppelter Kalman Filter}
+Durch die Rückkopplung der Position aus dem Kalmanfilter an den Strapdown Algorithmus, wird die Auswertung des Filters beeinflusst. Die urpsrünglichen gegebenen Genauigkeiten wurden für diesen Fall angepasst, da die Positionen der Vorepoche mit einfließen. Die Genauigkeiten wurden wie folgt verändert:
+
+\begin{table}[htbp]
+	\centering
+	\caption{Kalman Parameter}
+	\label{tab:kal_para_1}
+		\begin{tabular}{ lll }
+		\addlinespace[10pt]
+		Parameter	& Wert & Beschreibung\\ \toprule
+		$s_x = s_y$ & $\pm 1/2 * 1.4\cdot 10^{-3} * t^2 + 1/6 *3.8\cdot 10^{-8} * t^3$ & Mess-Rauschen der IMU\\
+		&mit t=const.&\\
+		$s_x = s_y = s_z$ & 2~mm & Std. der GPS-Koordinaten \\\bottomrule
+		\end{tabular}
+\end{table}
+
+Abbildung \ref{fig:lckf} verdeutlicht die starke Gewichtung der GPS Messung gegenüber der IMU. Nur in den GPS Lücken werden die IMU Messungen übernommen. Auch bei den Höhen in Abbildung \ref{fig:lch} ist die stärkere Gewichtung der GPS Daten für den Kalmanfilter ersichtlich.
+
+\begin{figure}[htbp]
+	\center
+ 	\includegraphics[width=0.8\textwidth]{pics/fig_4}
+	\caption{Trajektore (lose gekoppelter Kalmanfilter)}
+	\label{fig:lckf}
+\end{figure}
+\begin{figure}[htbp]
+	\center
+ 	\includegraphics[width=0.8\textwidth]{pics/fig_5}
+	\caption{Zeitreihe der Höhen (lose gekoppelter Kalmanfilter)}
+	\label{fig:lch}
+\end{figure}
+
+

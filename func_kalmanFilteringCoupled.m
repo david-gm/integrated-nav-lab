@@ -14,7 +14,7 @@ function [ x_k_hat, P_k ] = func_kalmanFilteringCoupled( x_k_hat, P_k, x_gps, x_
         
         if ~isnan(x_gps)
 %             t = 20;
-            t = 2*10^4;
+            %t = 2*10^4;
             sx = (0.5*1.4*10^(-3)*t^2+1/6*3.8*10^(-8)*t^3);
             
             H_k=[eye(3),zeros(3);eye(3),zeros(3)];
